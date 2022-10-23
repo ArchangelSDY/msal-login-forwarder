@@ -1,3 +1,4 @@
+use config::Config;
 use std::collections::HashMap;
 use std::env;
 use serde::{Deserialize, Serialize};
@@ -8,9 +9,22 @@ struct ForwardRequest {
     port: u16,
 }
 
+#[derive(Serialize, Deserialize)]
+struct Settings {
+    server: String,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut conf_path = dirs::config_dir().expect("no config dir");
+    conf_path.push("msal-login-forwarder");
+
+    let settings = Config::builder()
+        .add_source(config::File::with_name(conf_path.to_str().expect("no path")))
+        .build()?;
+    let settings_content: Settings = settings.try_deserialize()?;
+
     let argv: Vec<String> = env::args().collect();
-    println!("URL: {}", argv[1]);
+    println!("Server: {}, URL: {}", settings_content.server, argv[1]);
 
     let u = url::Url::parse(&argv[1])?;
     let qs: HashMap<_, _> = u.query_pairs().into_owned().collect();
@@ -22,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         port,
     };
     let client = reqwest::blocking::Client::new();
-    let resp = client.post("http://192.168.98.1:9080")
+    let resp = client.post(format!("http://{}", settings_content.server))
         .json(&forward_request)
         .send()?;
     let cb_qs = resp.text()?;

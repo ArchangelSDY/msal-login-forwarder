@@ -1,13 +1,20 @@
+use config::Config;
 use core::fmt;
 use std::net::TcpListener;
 use std::io::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
 use warp::{Filter, http::Response};
 
 #[derive(Serialize, Deserialize)]
 struct ForwardRequest {
     url: String,
     port: u16,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Settings {
+    bind: String,
 }
 
 impl fmt::Display for ForwardRequest {
@@ -18,7 +25,7 @@ impl fmt::Display for ForwardRequest {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let forward = warp::body::content_length_limit(1024 * 32)
         .and(warp::body::json())
         .map(|forward_request: ForwardRequest| {
@@ -75,9 +82,23 @@ async fn main() {
                 .body(query.to_string());
         });
 
-    println!("Listening...");
+    let mut conf_path = dirs::home_dir().expect("no config dir");
+    conf_path.push("msal-login-forwarder");
+
+    let settings = Config::builder()
+        .add_source(config::File::with_name(conf_path.to_str().expect("no path")))
+        .build()?;
+    let settings_content: Settings = settings.try_deserialize()?;
+
+    println!("Listening on {} ...", settings_content.bind);
+
+    let bind_addr: SocketAddr = settings_content.bind
+        .parse()
+        .expect("unable to parse bind addr");
 
     warp::serve(forward)
-        .run(([0, 0, 0, 0], 9080))
-        .await
+        .run(bind_addr)
+        .await;
+
+    Ok(())
 }
