@@ -8,11 +8,26 @@ leverage your existing login state.
 
 ## Windows side usage
 
-Server side works a forwarder and browser invoker. Simply run `server.exe`.
+Server side works a forwarder and browser invoker.
+
+1. Put a config file at `%HOME%/msal-login-forwarder.toml`:
+
+```toml
+bind = "0.0.0.0:9080"
+```
+
+2. Run `server.exe`.
 
 ## Linux side usage
 
 Client side works as a fake browser to receive requests. That means you need to cheat MSAL SDK to pretend our client is a browser.
+
+First you need to put a config file at `$HOME/.config/msal-login-forwarder.toml`:
+
+```toml
+# Replace the address with your server address
+server = "192.168.98.1:9080"
+```
 
 ### Python clients / Azure CLI
 
