@@ -1,0 +1,38 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  linux-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --release
+        working-directory: rust
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            rust/target/release/client
+
+  windows-build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        shell: pwsh
+        run: cargo build --release
+        working-directory: rust
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            rust/target/release/server.exe
